@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use web_sys::window;
 
-use crate::element_type::ElementType;
+use crate::utils::element_type::ElementType;
 
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

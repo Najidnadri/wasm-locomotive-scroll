@@ -1,5 +1,5 @@
-use serde::{Serialize, Deserialize};
-use web_sys::{window, Document, Element, NodeList, Event};
+use wasm_bindgen::{JsValue, JsCast};
+use web_sys::{window, Document, Element, NodeList, Event, HtmlCollection};
 
 #[derive(Clone, Debug)]
 pub enum ElementType {
@@ -54,4 +54,19 @@ impl ElementType {
     pub fn from_element(element: Element) -> Self {
         Self::Element(element)
     }
+
+    pub fn to_js(self) -> JsValue {
+        match self {
+            ElementType::Document(doc) => doc.dyn_into::<JsValue>().unwrap(),
+            ElementType::Element(el) => el.dyn_into::<JsValue>().unwrap()
+        }
+    }
+
+    pub fn children(&self) -> HtmlCollection {
+        match self {
+            ElementType::Document(doc) => doc.children(),
+            ElementType::Element(el) => el.children()
+        }
+    }
 }
+

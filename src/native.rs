@@ -4,7 +4,7 @@ use js_sys::Function;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{Element, Window, window, HtmlElement, console, ScrollToOptions, ScrollBehavior};
 
-use crate::{option::LocomotiveOption, virtual_scroll::VirtualScroll, instance::Instance, els::{ScrollToTarget, ScrollToOption}};
+use crate::{option::LocomotiveOption, virtual_scroll::VirtualScroll, utils::{els::{ScrollToOption, ScrollToTarget}, instance::Instance}};
 
 
 

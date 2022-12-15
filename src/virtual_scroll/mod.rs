@@ -3,7 +3,7 @@ use js_sys::Function;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use web_sys::window;
 
-use crate::{option::LocomotiveOption, element_type::ElementType};
+use crate::{option::LocomotiveOption, utils::element_type::ElementType};
 
  
 #[wasm_bindgen(module= "/js/virtual-scroll/index.js")]
@@ -15,7 +15,7 @@ extern "C" {
     pub fn new(option: JsValue) -> VirtualScroll;
 
     #[wasm_bindgen(method)]
-    pub fn on(this: &VirtualScroll, callback: Function);
+    pub fn on(this: &VirtualScroll, callback: &Function);
 }
 
 

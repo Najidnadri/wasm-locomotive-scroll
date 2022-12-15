@@ -1,7 +1,9 @@
 use wasm_bindgen::JsCast;
 use web_sys::{Element, HtmlElement};
 
-use crate::{option::Position, core::CurrentElements};
+use crate::option::Position;
+
+use super::current_elements::CurrentElements;
 
 #[derive(Clone, Debug)]
 pub struct Instance {
