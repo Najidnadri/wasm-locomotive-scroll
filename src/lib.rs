@@ -6,6 +6,7 @@ mod scroll;
 mod virtual_scroll;
 mod smooth_scroll;
 mod utils;
+mod bezier_easing;
 
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue, JsCast};
 pub use web_sys::*;
@@ -36,15 +37,14 @@ pub const END: u32 = 35;
 
 
 
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Smooth {
+pub struct LocomotiveScroll {
     core: Rc<RefCell<Core>>,
 }
 
 #[wasm_bindgen]
-impl Smooth {
+impl LocomotiveScroll {
     #[wasm_bindgen(constructor)]
     pub fn new(options: JsValue) -> Self {
         panic::set_hook(Box::new(console_error_panic_hook::hook));
@@ -78,7 +78,7 @@ impl Smooth {
 
 
         //Smooth
-        let mut smooth = Smooth {core};
+        let mut smooth = LocomotiveScroll {core};
 
         Core::check_scroll_callback(smooth.core.clone());
         Core::check_resize_callback(smooth.core.clone());
@@ -91,14 +91,16 @@ impl Smooth {
             window.add_event_listener_with_callback_and_bool("resize", check_resize_cb.as_ref().unchecked_ref(), false).unwrap();  
         }
         
-        let smooth_dbg = format!("{:?}", smooth);
-        console::log_1(&smooth_dbg.into());
+        //let smooth_dbg = format!("{:?}", smooth);
+        //console::log_1(&smooth_dbg.into());
+
+
 
         //INIT
         smooth.init();
 
-        let smooth_dbg = format!("{:?}", smooth);
-        console::log_1(&smooth_dbg.into());
+        //let smooth_dbg = format!("{:?}", smooth);
+        //console::log_1(&smooth_dbg.into());
 
         smooth
     }

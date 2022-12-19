@@ -41,6 +41,20 @@ pub fn get_translate(el: &Element) -> Option<Position> {
     None
 }
 
+pub fn get_parents(mut elem: Element) -> Vec<Element> {
+    // Initialize an empty `Vec` to store the parent elements.
+    let mut parents = Vec::new();
+
+    // Loop through each parent element, pushing it to the `parents` `Vec`.
+    while let Some(parent) = elem.parent_element() {
+        parents.push(parent.clone());
+        elem = parent;
+    }
+
+    // Return the `parents` `Vec`.
+    parents
+}
+
 /* 
 fn _get_translate(el: Element) -> Option<Position> {
     let window = web_sys::window()?;

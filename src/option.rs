@@ -19,9 +19,19 @@ impl Default for Position {
 }
 
 impl Position {
-    pub     fn new(x: f64, y: f64) -> Self {
+    pub fn new(x: f64, y: f64) -> Self {
         Position { x, y }
     }
+
+    pub fn get(&self, direction_axis: char) -> f64 {
+        match direction_axis {
+            'x' => self.x,
+            'y' => self.y,
+            _ => panic!("direction axis not supported")
+        }
+    }
+
+
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -191,6 +201,25 @@ impl LocomotiveOption {
         let is_tablet = self.is_mobile && inner_width >= 1024.0;
 
         self.is_tablet = is_tablet;
+    }
+
+    pub(crate) fn check_mobile_bool(&self) -> bool {
+        let navigator = window().unwrap().navigator();
+        let inner_width = window().unwrap().inner_width().unwrap().as_f64().unwrap();
+        let reg_exp = js_sys::RegExp::new("/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/", "i");
+
+        let is_mobile = reg_exp.test(&navigator.user_agent().unwrap()) || 
+            (navigator.platform().unwrap() == "MacIntel".to_string() && navigator.max_touch_points() > 1) || 
+            inner_width < 1024.0;
+
+        is_mobile
+    }
+
+    pub(crate) fn check_tablet_bool(&self) -> bool {
+        let inner_width = window().unwrap().inner_width().unwrap().as_f64().unwrap();
+        let is_tablet = self.is_mobile && inner_width >= 1024.0;
+
+        is_tablet
     }
 
 }

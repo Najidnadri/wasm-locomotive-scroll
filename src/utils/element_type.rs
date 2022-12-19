@@ -68,5 +68,14 @@ impl ElementType {
             ElementType::Element(el) => el.children()
         }
     }
+
+    pub fn get_element(&self) -> &Element {
+        match self {
+            Self::Element(el) => el,
+            _ => panic!("cannot get element proprty")
+        }
+    }
+
+
 }
 

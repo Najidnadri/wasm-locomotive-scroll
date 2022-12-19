@@ -28,13 +28,13 @@ impl Scroll {
         }
     }
 
-    pub fn get_option(&self) -> LocomotiveOption {
+    pub fn get_option(&self) -> &LocomotiveOption {
         match self {
             Scroll::Smooth(scroll) => {
-                scroll.options.clone()
+                &scroll.options
             },
             Scroll::Native(scroll) => {
-                scroll.options.clone()
+                &scroll.options
             },
             _ => todo!()
         }
@@ -76,7 +76,28 @@ impl Scroll {
     pub fn get_smooth(&self) -> &SmoothScroll {
         match self {
             Scroll::Smooth(scroll) => scroll,
-            _ => panic!("cannot get mutable smooth scroll"),
+            _ => panic!("cannot get reference to smooth scroll"),
+        }
+    }
+
+    pub fn get_mut_smooth(&mut self) -> &mut SmoothScroll {
+        match self {
+            Scroll::Smooth(scroll) => scroll,
+            _ => panic!("cannot get mutable smooth scroll")
+        }
+    }
+
+    pub fn is_smooth(&self) -> bool {
+        match self {
+            Scroll::Smooth(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_native(&self) -> bool {
+        match self {
+            Scroll::Native(_) => true,
+            _ => false
         }
     }
 }
