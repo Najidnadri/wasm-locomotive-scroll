@@ -1,10 +1,10 @@
 use std::{rc::Rc, cell::RefCell};
 
-use js_sys::Function;
+
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{Element, Window, window, HtmlElement, console, ScrollToOptions, ScrollBehavior};
 
-use crate::{option::LocomotiveOption, virtual_scroll::VirtualScroll, instance::Instance, els::{ScrollToTarget, ScrollToOption}};
+use crate::{option::LocomotiveOption, virtual_scroll::VirtualScroll, utils::{els::{ScrollToOption, ScrollToTarget}, instance::Instance}};
 
 
 
@@ -16,7 +16,7 @@ pub struct NativeScroll {
 }
 
 impl NativeScroll {
-    pub fn new(options: LocomotiveOption, window: &Window, check_scroll_cb: Closure<dyn Fn()>) -> Self {
+    pub fn _new(options: LocomotiveOption, window: &Window, check_scroll_cb: Closure<dyn Fn()>) -> Self {
         
         //1
         if options.reset_native_scroll {
@@ -45,7 +45,7 @@ impl NativeScroll {
 
     }
 
-    pub fn scroll_to(target: ScrollToTarget, option: ScrollToOption, html: &Element, instance: Rc<RefCell<Instance>>) {
+    pub fn _scroll_to(target: ScrollToTarget, option: ScrollToOption, html: &Element, instance: Rc<RefCell<Instance>>) {
         let mut offset = match option.offset {
             Some(val) => val.parse::<f64>().unwrap().trunc(),
             None => 0.0
@@ -83,7 +83,7 @@ impl NativeScroll {
         offset = target;
 
         if let Some(callback) = option.callback {
-            if is_target_reached(offset) {
+            if _is_target_reached(offset) {
                 callback();
                 return;
             } else {
@@ -92,7 +92,7 @@ impl NativeScroll {
                 
                 *onscroll.borrow_mut() = Some(Closure::new(move || {
                     let callback = callback.clone();
-                    if is_target_reached(offset) {
+                    if _is_target_reached(offset) {
                         let cb = onscroll2.borrow();
                         let cb = cb.as_ref().unwrap().as_ref().unchecked_ref();
                         window().unwrap().remove_event_listener_with_callback("scroll", cb).unwrap();
@@ -119,37 +119,10 @@ impl NativeScroll {
 
     }
 
-    pub fn update(&self) {
-
-    }
-
-    pub fn start(&self) {
-        
-    }
-
-    pub fn stop(&self) {
-        
-    }
-
-    pub fn set_scroll(&mut self, _x: Option<f64>, _y: Option<f64>) {
-
-    }
-
-    pub fn on(&self, _event: &str, _callback: Function) {
-        
-    }
-
-    pub fn off(&self, _event: &str, _callback: Function) {
-
-    }
-
-    pub fn destroy(&self) {
-
-    }
 }
 
 
 
-fn is_target_reached(offset: f64) -> bool {
+fn _is_target_reached(offset: f64) -> bool {
     window().unwrap().page_y_offset().unwrap().trunc() == offset.trunc()
 }

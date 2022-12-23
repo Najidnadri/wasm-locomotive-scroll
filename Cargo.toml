@@ -32,7 +32,11 @@ features = [
     "DomRect",
     "DomStringMap",
     "ScrollToOptions",
-    "ScrollBehavior"
+    "ScrollBehavior",
+    "WheelEvent",
+    "HtmlCollection",
+    "CssStyleDeclaration",
+    "MouseEvent"
 ]
 
 

@@ -2,13 +2,11 @@ mod option;
 mod native;
 mod smooth;
 mod core;
-mod core2;
 mod scroll;
 mod virtual_scroll;
-mod instance;
 mod smooth_scroll;
-mod els;
-mod element_type;
+mod utils;
+mod bezier_easing;
 
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue, JsCast};
 pub use web_sys::*;
@@ -16,13 +14,13 @@ pub use web_sys::*;
 
 use std::{panic, cell::RefCell, rc::Rc};
 
-use core2::Core;
+use crate::core::Core;
 use option::LocomotiveOption;
 use scroll::Scroll;
 //use virtual_scroll::{VirtualScroll, VsOption};
 use web_sys::{console, window};
 
-use crate::element_type::ElementType;
+use crate::utils::element_type::ElementType;
 
 
 pub const LEFT: u32 = 37;
@@ -39,23 +37,22 @@ pub const END: u32 = 35;
 
 
 
-
 #[derive(Clone, Debug)]
 #[wasm_bindgen]
-pub struct Smooth {
+pub struct LocomotiveScroll {
     core: Rc<RefCell<Core>>,
 }
 
 #[wasm_bindgen]
-impl Smooth {
+impl LocomotiveScroll {
     #[wasm_bindgen(constructor)]
     pub fn new(options: JsValue) -> Self {
         panic::set_hook(Box::new(console_error_panic_hook::hook));
-        console::log_2(&"before default: ".into(), &options);
+        //console::log_2(&"before default: ".into(), &options);
         let mut options: LocomotiveOption = serde_wasm_bindgen::from_value(options).unwrap();
         let el = window().unwrap().document().unwrap().query_selector(&options.query).unwrap().unwrap();
         options.el = ElementType::from_element(el);
-        console::log_1(&format!("options after default: {:?}", options).into());
+        //console::log_1(&format!("options after default: {:?}", options).into());
 
         //warnings
         if !options.smooth && options.direction == "horizontal".to_string() {
@@ -79,8 +76,9 @@ impl Smooth {
         //core
         let core = Core::new(options.clone());
 
+
         //Smooth
-        let mut smooth = Smooth {core: Rc::new(RefCell::new(core))};
+        let mut smooth = LocomotiveScroll {core};
 
         Core::check_scroll_callback(smooth.core.clone());
         Core::check_resize_callback(smooth.core.clone());
@@ -93,14 +91,16 @@ impl Smooth {
             window.add_event_listener_with_callback_and_bool("resize", check_resize_cb.as_ref().unchecked_ref(), false).unwrap();  
         }
         
-        let smooth_dbg = format!("{:?}", smooth);
-        console::log_1(&smooth_dbg.into());
+        //let smooth_dbg = format!("{:?}", smooth);
+        //console::log_1(&smooth_dbg.into());
+
+
 
         //INIT
         smooth.init();
 
-        let smooth_dbg = format!("{:?}", smooth);
-        console::log_1(&smooth_dbg.into());
+        //let smooth_dbg = format!("{:?}", smooth);
+        //console::log_1(&smooth_dbg.into());
 
         smooth
     }

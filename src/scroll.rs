@@ -1,37 +1,89 @@
-use std::{rc::Rc, cell::RefCell};
 
+use convert_js::ToJs;
+use wasm_bindgen::JsCast;
 
-use web_sys::Element;
-
-use crate::{smooth::SmoothScroll, native::NativeScroll, instance::Instance, option::LocomotiveOption};
+use crate::{smooth::SmoothScroll, native::NativeScroll, option::LocomotiveOption, virtual_scroll::{VirtualScroll, VsOption}};
 
 
 #[derive(Debug, Clone)]
 pub enum Scroll {
+    None,
     Smooth(SmoothScroll),
-    Native(NativeScroll),
+    _Native(NativeScroll),
 }
 
 impl Scroll {
-    pub fn init(&mut self, html: Rc<RefCell<Element>>, instance: &mut Instance) {
+
+    pub fn get_option(&self) -> &LocomotiveOption {
         match self {
             Scroll::Smooth(scroll) => {
-                scroll.init(html, instance);
+                &scroll.options
             },
-            Scroll::Native(_scroll) => {
-                //scroll.init(instance);
-            }
+            Scroll::_Native(scroll) => {
+                &scroll.options
+            },
+            _ => todo!()
         }
     }
 
-    pub fn get_option(&self) -> LocomotiveOption {
+    pub fn set_virtual_scroll(&mut self, option: VsOption) {
         match self {
             Scroll::Smooth(scroll) => {
-                scroll.options.clone()
+                let vs = VirtualScroll::new(option.to_js());
+                scroll.virtual_scroll = Some(vs);
             },
-            Scroll::Native(scroll) => {
-                scroll.options.clone()
+            _ => ()
+        }
+    }
+
+    pub fn set_vs_event_listener(&self) {
+
+        match self {
+            Scroll::Smooth(scroll) => {
+                let cb = scroll.vs_cb_1.clone();
+                scroll.virtual_scroll.as_ref().unwrap().on(cb.as_ref().borrow().as_ref().unwrap().as_ref().unchecked_ref());
+            },
+            _ => ()
+        }
+    }
+    /* 
+    pub fn set_scrollbar(&mut self, scrollbar: Element, thumb: Element) {
+        match self {
+            Scroll::Smooth(scroll) => {
+                scroll.scrollbar = Some(scrollbar);
+                scroll.scrollbar_thumb = Some(thumb);
+            },
+            _ => {
+                ()
             }
+        }
+    }
+    */
+    pub fn get_smooth(&self) -> &SmoothScroll {
+        match self {
+            Scroll::Smooth(scroll) => scroll,
+            _ => panic!("cannot get reference to smooth scroll"),
+        }
+    }
+
+    pub fn get_mut_smooth(&mut self) -> &mut SmoothScroll {
+        match self {
+            Scroll::Smooth(scroll) => scroll,
+            _ => panic!("cannot get mutable smooth scroll")
+        }
+    }
+
+    pub fn is_smooth(&self) -> bool {
+        match self {
+            Scroll::Smooth(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn _is_native(&self) -> bool {
+        match self {
+            Scroll::_Native(_) => true,
+            _ => false
         }
     }
 }

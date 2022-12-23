@@ -1,5 +1,5 @@
-use serde::{Serialize, Deserialize};
-use web_sys::{window, Document, Element, NodeList, Event};
+use wasm_bindgen::{JsValue, JsCast};
+use web_sys::{window, Document, Element, NodeList, Event, HtmlCollection};
 
 #[derive(Clone, Debug)]
 pub enum ElementType {
@@ -16,7 +16,7 @@ impl Default for ElementType {
 
 
 impl ElementType {
-    pub fn query_selector(&self, selectors: &str) -> Option<Element> {
+    pub fn _query_selector(&self, selectors: &str) -> Option<Element> {
         match self {
             ElementType::Document(doc) => doc.query_selector(selectors).unwrap(),
             ElementType::Element(el) => el.query_selector(selectors).unwrap()
@@ -37,7 +37,7 @@ impl ElementType {
         }
     }
 
-    pub fn try_get_document(&self) -> Option<&Document> {
+    pub fn _try_get_document(&self) -> Option<&Document> {
         match self {
             ElementType::Document(doc) => Some(doc),
             ElementType::Element(_) => None
@@ -54,4 +54,28 @@ impl ElementType {
     pub fn from_element(element: Element) -> Self {
         Self::Element(element)
     }
+
+    pub fn to_js(self) -> JsValue {
+        match self {
+            ElementType::Document(doc) => doc.dyn_into::<JsValue>().unwrap(),
+            ElementType::Element(el) => el.dyn_into::<JsValue>().unwrap()
+        }
+    }
+
+    pub fn children(&self) -> HtmlCollection {
+        match self {
+            ElementType::Document(doc) => doc.children(),
+            ElementType::Element(el) => el.children()
+        }
+    }
+
+    pub fn get_element(&self) -> &Element {
+        match self {
+            Self::Element(el) => el,
+            _ => panic!("cannot get element proprty")
+        }
+    }
+
+
 }
+

@@ -1,7 +1,9 @@
 use wasm_bindgen::JsCast;
 use web_sys::{Element, HtmlElement};
 
-use crate::{option::Position, core::CurrentElements};
+use crate::option::Position;
+
+use super::current_elements::CurrentElements;
 
 #[derive(Clone, Debug)]
 pub struct Instance {
@@ -29,7 +31,7 @@ impl Instance {
         self.scroll = position
     }
 
-    pub fn get_limit(&self, direction_axis: char) -> f64 {
+    pub fn _get_limit(&self, direction_axis: char) -> f64 {
         match direction_axis {
             'x' => self.limit.x,
             'y' => self.limit.y,
@@ -37,7 +39,7 @@ impl Instance {
         }
     }
 
-    pub fn get_delta(&self, direction_axis: char) -> f64 {
+    pub fn _get_delta(&self, direction_axis: char) -> f64 {
         match direction_axis {
             'x' => self.delta.as_ref().unwrap().x,
             'y' => self.delta.as_ref().unwrap().y,
@@ -45,7 +47,7 @@ impl Instance {
         }
     }
 
-    pub fn change_delta_with_limit(&mut self, direction_axis: char, operation: &str, other_val: f64) {
+    pub fn _change_delta_with_limit(&mut self, direction_axis: char, operation: &str, other_val: f64) {
         match direction_axis {
             'x' => {
                 match operation {
@@ -75,7 +77,7 @@ impl Instance {
         }
     }
 
-    pub fn update_delta(&mut self, direction_axis: char, val: f64) {
+    pub fn _update_delta(&mut self, direction_axis: char, val: f64) {
         match direction_axis {
             'x' => self.delta.as_mut().unwrap().x = val,
             'y' => self.delta.as_mut().unwrap().y = val,
