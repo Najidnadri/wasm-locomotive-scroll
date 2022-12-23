@@ -36,6 +36,7 @@ impl Core {
     pub fn check_resize_callback(core: Rc<RefCell<Core>>) {
         let callback: Rc<RefCell<Option<Closure<dyn FnMut() >>>> = Rc::new(RefCell::new(None));
         let core2 = core.clone();
+
         
         *callback.borrow_mut() = Some(Closure::new(move || {
             let core = core.clone();

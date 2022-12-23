@@ -60,7 +60,7 @@ impl Scroll {
             _ => ()
         }
     }
-
+    /* 
     pub fn set_scrollbar(&mut self, scrollbar: Element, thumb: Element) {
         match self {
             Scroll::Smooth(scroll) => {
@@ -72,7 +72,7 @@ impl Scroll {
             }
         }
     }
-
+    */
     pub fn get_smooth(&self) -> &SmoothScroll {
         match self {
             Scroll::Smooth(scroll) => scroll,

@@ -128,7 +128,8 @@ impl Core {
 
         let scroll = Core::create_scroll(options.clone(),  core.clone());
         {
-            core.as_ref().borrow_mut().scroll = scroll;
+            web_sys::console::log_1(&"6".into());
+            core.borrow_mut().scroll = scroll;
         }
         
 
@@ -165,7 +166,8 @@ impl Core {
     pub fn init_events(core: Rc<RefCell<Core>>, options: &LocomotiveOption) {
 
         {
-            core.as_ref().borrow_mut().scroll_to_els = options.el.query_selector_all(&format!("[data-{}-to", options.name));
+            web_sys::console::log_1(&"7".into());
+            core.borrow_mut().scroll_to_els = options.el.query_selector_all(&format!("[data-{}-to", options.name));
         }
 
         let core = core.clone();
@@ -211,7 +213,8 @@ impl Core {
         }
 
         let is_mobile = options.check_mobile_bool();
-        {
+        {   
+            web_sys::console::log_1(&"1".into());
             match _is_smooth {
                 true => core.borrow_mut().scroll.get_mut_smooth().options.is_mobile = is_mobile,
                 false => todo!()
@@ -219,6 +222,7 @@ impl Core {
         }
         let is_tablet = options.check_tablet_bool();
         {
+            web_sys::console::log_1(&"2".into());
             match _is_smooth {
                 true => core.borrow_mut().scroll.get_mut_smooth().options.is_tablet = is_tablet,
                 false => todo!()
@@ -283,6 +287,9 @@ impl Core {
             let scroll_left = core.instance.as_ref().borrow().scroll.x;
             let scroll_right = scroll_left + core.window_width;
 
+            let els = core.els.as_ref().clone().into_inner().clone().data;
+            let js_val = MappedEl::hash_to_js(&els);
+            //web_sys::console::log_1(&js_val);
             for (id, el) in core.els.as_ref().clone().into_inner().clone().data {
                 if !el.in_view.as_ref().unwrap() || has_call_event_set == Some(true) {
 
@@ -301,7 +308,7 @@ impl Core {
                     if options.direction.as_str() == "horizontal" {
                         let width = el.right - el.left;
                         let scroll_x = core.instance.as_ref().borrow().scroll.x;
-                        let new_progress = (scroll_x - (el.left - core.window_width)) / (width / core.window_width);
+                        let new_progress = (scroll_x - (el.left - core.window_width)) / (width + core.window_width);
                         core.els.as_ref().borrow_mut().data.entry(id.clone()).and_modify(|data| {
                             data.progress = Some(new_progress)
                         });
@@ -312,10 +319,12 @@ impl Core {
                     } else {
                         let height = el.bottom - el.top;
                         let scroll_y = core.instance.as_ref().borrow().scroll.y;
-                        let new_progress = (scroll_y - (el.top - core.window_height)) / (height / core.window_height);
-                        core.els.as_ref().borrow_mut().data.entry(id.clone()).and_modify(|data| {
-                            data.progress = Some(new_progress)
-                        });
+                        let new_progress = (scroll_y - (el.top - core.window_height)) / (height + core.window_height);
+                        {
+                            core.els.as_ref().borrow_mut().data.entry(id.clone()).and_modify(|data| {
+                                data.progress = Some(new_progress)
+                            });
+                        }
 
                         if scroll_bottom < el.top || scroll_top > el.bottom {
                             Core::set_out_of_view(&el, &id, cores.clone(), options);

@@ -99,7 +99,6 @@ impl SmoothScroll {
 
     pub fn move_scrollbar_cb(&mut self, core: Rc<RefCell<Core>>) {
         let callback: Rc<RefCell<Option<Closure<dyn Fn(MouseEvent)>>>> = Rc::new(RefCell::new(None));
-        self.move_scrollbar_cb_2(core.clone());
 
         *callback.borrow_mut() = Some(Closure::new(move |event: MouseEvent| {
             let core = core.clone();
@@ -182,40 +181,53 @@ impl SmoothScroll {
         self.check_key_cb_1 = callback;
     }
 
-    pub fn vs_cb_1(&mut self, core: Rc<RefCell<Core>>, options: &LocomotiveOption) {
+    pub fn vs_cb_1(&mut self, _core: Rc<RefCell<Core>>, _options: &LocomotiveOption) {
         let callback: Rc<RefCell<Option<Closure<dyn Fn(WheelEvent)>>>> = Rc::new(RefCell::new(None));
         let stop = self.stop.clone();
         let is_dragging_scrollbar = self.is_dragging_scrollbar.clone();
-        let is_scrolling = self.is_scrolling.clone();
-        let options = options.clone();
+        let wheel_event = self.wheel_event.clone();
+        let cb = self.vs_cb_2.clone();
+
 
         *callback.borrow_mut() = Some(Closure::new(move |event: WheelEvent| {
-            let core = core.clone();
             let stop = stop.clone();
-            let options = options.clone();
             let is_dragging_scrollbar = is_dragging_scrollbar.clone();
-            let is_scrolling = is_scrolling.clone();
+            let wheel_event = wheel_event.clone();
+            {
+                *wheel_event.borrow_mut() = Some(event.clone());
+            }
+            let cb = cb.clone();
 
             if *stop.as_ref().borrow() == false {
                 if *is_dragging_scrollbar.as_ref().borrow() == false {
-                    let cb = Closure::wrap(Box::new(move || {
-                        let core = core.clone();
-                        let options = options.clone();
-                        let event = event.clone();
-                        let is_scrolling = is_scrolling.clone();
-                        SmoothScroll::update_delta(event, core.clone(), options.clone());
 
-                        if *is_scrolling.as_ref().borrow() == false {
-                            SmoothScroll::start_scrolling(core.clone(), options.clone());
-                        }
-                    }) as Box<dyn Fn()>);
-
-                    window().unwrap().request_animation_frame(cb.as_ref().unchecked_ref()).unwrap();
+                    window().unwrap().request_animation_frame(cb.borrow().as_ref().unwrap().as_ref().unchecked_ref()).unwrap();
                 }
             }
         }));
 
         self.vs_cb_1 = callback;
+    }
+
+    pub fn vs_cb_2(&mut self, core: Rc<RefCell<Core>>, options: &LocomotiveOption) {
+        let callback: Rc<RefCell<Option<Closure<dyn Fn()>>>> = Rc::new(RefCell::new(None));
+        let wheel_event = self.wheel_event.clone();
+        let options = options.clone();
+        let is_scrolling = self.is_scrolling.clone();
+        
+        *callback.borrow_mut() = Some(Closure::new(move || {
+            let core = core.clone();
+            let wheel_event = wheel_event.clone();
+            let wheel_event = wheel_event.borrow().as_ref().unwrap().clone();
+            let options = options.clone();
+
+            SmoothScroll::update_delta(wheel_event, core.clone(), options.clone());
+            if *is_scrolling.as_ref().borrow() == false {
+                SmoothScroll::start_scrolling(core.clone(), options.clone());
+            }
+        }));
+
+        self.vs_cb_2 = callback;
     }
 
     pub fn check_scroll_cb(&mut self, core: Rc<RefCell<Core>>, options: &LocomotiveOption) {

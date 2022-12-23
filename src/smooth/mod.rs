@@ -3,6 +3,7 @@ mod utils;
 
 use std::{rc::Rc, cell::RefCell};
 
+use convert_js::ToJs;
 use js_sys::{Date, Function};
 use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
 use web_sys::{Element, KeyboardEvent, window, WheelEvent, HtmlElement, Node, MouseEvent, DomRect};
@@ -19,7 +20,6 @@ pub struct SmoothScroll {
     pub is_scrolling: Rc<RefCell<bool>>,
     pub is_dragging_scrollbar: Rc<RefCell<bool>>,
     pub is_ticking: bool,
-    pub has_scroll_ticking: Rc<RefCell<bool>>,
     pub parallax_elements: Rc<RefCell<ParallaxElements>>,
     pub stop: Rc<RefCell<bool>>,
     pub scrollbar_container: bool,
@@ -38,12 +38,13 @@ pub struct SmoothScroll {
     pub sections: Rc<RefCell<Sections>>,
 
     //scrollbar
-    pub scrollbar: Option<Element>,
-    pub scrollbar_thumb: Option<Element>,
+    pub scrollbar: Rc<RefCell<Option<Element>>>,
+    pub scrollbar_thumb: Rc<RefCell<Option<Element>>>,
     pub get_scrollbar: Rc<RefCell<Option<Closure<dyn Fn()>>>>,
     pub release_scrollbar: Rc<RefCell<Option<Closure<dyn Fn()>>>>,
     pub move_scrollbar: Rc<RefCell<Option<Closure<dyn Fn(MouseEvent)>>>>,
     pub mouse_event: Rc<RefCell<Option<MouseEvent>>>,
+    pub wheel_event: Rc<RefCell<Option<WheelEvent>>>,
     pub scrollbar_bcr: Rc<RefCell<Option<DomRect>>>,
     pub scrollbar_width: Rc<RefCell<Option<f64>>>,
     pub scrollbar_height: Rc<RefCell<Option<f64>>>,
@@ -54,6 +55,7 @@ pub struct SmoothScroll {
     check_key_cb_1: Rc<RefCell<Option<Closure<dyn Fn()>>>>,
     pub check_key_cb_2: Rc<RefCell<Option<Closure<dyn Fn()>>>>,
     pub vs_cb_1: Rc<RefCell<Option<Closure<dyn Fn(WheelEvent)>>>>,
+    pub vs_cb_2: Rc<RefCell<Option<Closure<dyn Fn()>>>>,
     pub check_scroll_cb: Rc<RefCell<Option<Closure<dyn Fn()>>>>,
     pub move_scrollbar_cb_2: Rc<RefCell<Option<Closure<dyn Fn()>>>>,
     pub loop_cb: Rc<RefCell<Option<Closure<dyn Fn()>>>>,
@@ -74,7 +76,6 @@ impl SmoothScroll {
             is_scrolling: Rc::new(RefCell::new(false)),
             is_dragging_scrollbar: Rc::new(RefCell::new(false)),
             is_ticking: false,
-            has_scroll_ticking: Rc::new(RefCell::new(false)),
             parallax_elements: Rc::new(RefCell::new(ParallaxElements::new())),
             stop: Rc::new(RefCell::new(false)),
             scrollbar_container,
@@ -89,12 +90,13 @@ impl SmoothScroll {
             scroll_to_raf: Rc::new(RefCell::new(None)),
             sections: Rc::new(RefCell::new(Sections::new())),
 
-            scrollbar: None,
-            scrollbar_thumb: None,
+            scrollbar: Rc::new(RefCell::new(None)),
+            scrollbar_thumb: Rc::new(RefCell::new(None)),
             get_scrollbar: Rc::new(RefCell::new(None)),
             release_scrollbar: Rc::new(RefCell::new(None)),
             move_scrollbar: Rc::new(RefCell::new(None)),
             mouse_event: Rc::new(RefCell::new(None)),
+            wheel_event: Rc::new(RefCell::new(None)),
             scrollbar_bcr: Rc::new(RefCell::new(None)),
             scrollbar_width: Rc::new(RefCell::new(None)),
             scrollbar_height: Rc::new(RefCell::new(None)),
@@ -103,6 +105,7 @@ impl SmoothScroll {
             check_key_cb_1: Rc::new(RefCell::new(None)),
             check_key_cb_2: Rc::new(RefCell::new(None)),
             vs_cb_1: Rc::new(RefCell::new(None)),
+            vs_cb_2: Rc::new(RefCell::new(None)),
             check_scroll_cb: Rc::new(RefCell::new(None)),
             move_scrollbar_cb_2: Rc::new(RefCell::new(None)),
             loop_cb: Rc::new(RefCell::new(None)),
@@ -111,10 +114,12 @@ impl SmoothScroll {
         smooth.check_key_cb_1(core.clone());
         smooth.check_key_cb_2(core.clone());
         smooth.check_key_callback(core.clone());
+        smooth.vs_cb_2(core.clone(), &options);
         smooth.vs_cb_1(core.clone(), &options);
         smooth.check_scroll_cb(core.clone(), &options);
         smooth.get_scrollbar(core.clone(), &options);
         smooth.release_scrollbar_cb(core.clone(), &options);
+        smooth.move_scrollbar_cb_2(core.clone());
         smooth.move_scrollbar_cb(core.clone());
         
 
@@ -150,7 +155,8 @@ impl SmoothScroll {
                 use_keyboard: false,
                 passive: true,
             };
-            core.as_ref().borrow_mut().scroll.set_virtual_scroll(vs_option);
+            web_sys::console::log_1(&"8".into());
+            core.borrow_mut().scroll.set_virtual_scroll(vs_option);
         }
         {
             core.as_ref().borrow().scroll.set_vs_event_listener()
@@ -202,10 +208,9 @@ impl SmoothScroll {
     fn init_scroll_bar(core: Rc<RefCell<Core>>, options: &LocomotiveOption) {
         let window = window().unwrap();
         let doc = window.document().unwrap();
-        let core = core.clone();
-        let core_ref = core.as_ref().borrow();
-        let scroll = core_ref.scroll.get_smooth();
-        let instance = core_ref.instance.clone();
+        let scroll = &core.borrow().scroll;
+        let scroll = scroll.get_smooth();
+        let instance = core.borrow().instance.clone();
 
         let scrollbar = doc.create_element("span").unwrap();
         let scrollbar_thumb = doc.create_element("span").unwrap();
@@ -216,11 +221,10 @@ impl SmoothScroll {
 
         //todo..append to scrollbar container if exist
         //...
-
         doc.body().unwrap().append_with_node_1(scrollbar.dyn_ref::<Node>().unwrap()).unwrap();
         {
-            let mut scroll = core.as_ref().borrow_mut();
-            scroll.scroll.set_scrollbar(scrollbar, scrollbar_thumb.clone());
+            *scroll.scrollbar.clone().borrow_mut() = Some(scrollbar);
+            *scroll.scrollbar_thumb.borrow_mut() = Some(scrollbar_thumb.clone());            
         }
 
         //scrollbar events
@@ -230,7 +234,7 @@ impl SmoothScroll {
 
         //set scroll bar values
         {
-            *core_ref.has_scroll_bar.borrow_mut().as_mut().unwrap() = false;
+            *core.borrow().has_scroll_bar.borrow_mut() = Some(false);
         }
         if options.direction.as_str() == "horizontal" {
             if instance.borrow().limit.x + core.borrow().window_width <= core.borrow().window_width {
@@ -242,11 +246,11 @@ impl SmoothScroll {
             }
         }
         {
-            *core_ref.has_scroll_bar.borrow_mut().as_mut().unwrap() = true;
+            *core.borrow().has_scroll_bar.borrow_mut() = Some(true);
         }
 
         {
-            *scroll.scrollbar_bcr.borrow_mut() = Some(scroll.scrollbar.as_ref().unwrap().get_bounding_client_rect());
+            *scroll.scrollbar_bcr.borrow_mut() = Some(scroll.scrollbar.borrow().as_ref().unwrap().get_bounding_client_rect());
         }
         {
             *scroll.scrollbar_height.borrow_mut() = Some(scroll.scrollbar_bcr.borrow().as_ref().unwrap().height());
@@ -254,13 +258,13 @@ impl SmoothScroll {
         }
         {
             if options.direction.as_str() == "horizontal" {
-                let style = scroll.scrollbar_thumb.as_ref().unwrap().dyn_ref::<HtmlElement>().unwrap().style();
+                let style = scroll.scrollbar_thumb.borrow().as_ref().unwrap().dyn_ref::<HtmlElement>().unwrap().style();
                 let scrollbar_width = scroll.scrollbar_width.borrow();
                 let scrollbar_width = scrollbar_width.as_ref().unwrap();
                 let width = (scrollbar_width * scrollbar_width) / instance.borrow().limit.x + scrollbar_width;
                 style.set_property("width", &format!("{:?}px", width)).unwrap();
             } else {
-                let style = scroll.scrollbar_thumb.as_ref().unwrap().dyn_ref::<HtmlElement>().unwrap().style();
+                let style = scroll.scrollbar_thumb.borrow().as_ref().unwrap().dyn_ref::<HtmlElement>().unwrap().style();
                 let scrollbar_height = scroll.scrollbar_height.borrow();
                 let scrollbar_height = scrollbar_height.as_ref().unwrap();
                 let width = (scrollbar_height * scrollbar_height) / instance.borrow().limit.y + scrollbar_height;
@@ -269,7 +273,7 @@ impl SmoothScroll {
         }
 
         {
-            *scroll.scrollbar_thumb_bcr.borrow_mut() = Some(scroll.scrollbar_thumb.as_ref().unwrap().get_bounding_client_rect());
+            *scroll.scrollbar_thumb_bcr.borrow_mut() = Some(scroll.scrollbar_thumb.borrow().as_ref().unwrap().get_bounding_client_rect());
         }
         {
             let x = scroll.scrollbar_width.borrow().as_ref().unwrap() - scroll.scrollbar_thumb_bcr.borrow().as_ref().unwrap().width();
@@ -279,8 +283,11 @@ impl SmoothScroll {
 
     }
 
+
+    ///this function will take a `mut core`, so be sure that the parents is not borrowing `core`
     fn add_sections(core: Rc<RefCell<Core>>, options: &LocomotiveOption) {
-        let mut core_ref = core.as_ref().borrow_mut();
+        web_sys::console::log_1(&"9".into());
+        let mut core_ref = core.borrow_mut();
         let scroll = core_ref.scroll.get_mut_smooth();
         {
             scroll.sections.borrow_mut().clear();
@@ -307,8 +314,8 @@ impl SmoothScroll {
             };
             let section_bcr = section.get_bounding_client_rect();
             let offset = Position {
-                x: section_bcr.left() - window().unwrap().inner_width().unwrap().as_f64().unwrap() * 1.5 - get_translate(&section).unwrap().x,
-                y: section_bcr.top() - window().unwrap().inner_height().unwrap().as_f64().unwrap() * 1.5 - get_translate(&section).unwrap().y,
+                x: section_bcr.left() - window().unwrap().inner_width().unwrap().as_f64().unwrap() * 1.5 - get_translate(&section).x,
+                y: section_bcr.top() - window().unwrap().inner_height().unwrap().as_f64().unwrap() * 1.5 - get_translate(&section).y,
             };
             let limit = Position {
                 x: offset.x + section_bcr.width() + window().unwrap().inner_width().unwrap().as_f64().unwrap() * 2.0,
@@ -404,20 +411,20 @@ impl SmoothScroll {
                 Some(sect) => {
                     match !sect.borrow().in_view.clone() {
                         true => {
-                            let top = target_el_bcr.top() - get_translate(&sect.borrow().el).unwrap().y + get_translate(&target_el).unwrap().y;
-                            let left = target_el_bcr.left() - get_translate(&sect.borrow().el).unwrap().x + get_translate(&target_el).unwrap().x;
+                            let top = target_el_bcr.top() - get_translate(&sect.borrow().el).y + get_translate(&target_el).y;
+                            let left = target_el_bcr.left() - get_translate(&sect.borrow().el).x + get_translate(&target_el).x;
                             (top, left)
                         },
                         false => {
-                            let top = target_el_bcr.top() + instance.borrow().scroll.y - get_translate(&target_el).unwrap().y;
-                            let left = target_el_bcr.left() + instance.borrow().scroll.x - get_translate(&target_el).unwrap().x;
+                            let top = target_el_bcr.top() + instance.borrow().scroll.y - get_translate(&target_el).y;
+                            let left = target_el_bcr.left() + instance.borrow().scroll.x - get_translate(&target_el).x;
                             (top, left)
                         }
                     }
                 }, 
                 None => {
-                    let top = target_el_bcr.top() + instance.borrow().scroll.y - get_translate(&target_el).unwrap().y;
-                    let left = target_el_bcr.left() + instance.borrow().scroll.x - get_translate(&target_el).unwrap().x;
+                    let top = target_el_bcr.top() + instance.borrow().scroll.y - get_translate(&target_el).y;
+                    let left = target_el_bcr.left() + instance.borrow().scroll.x - get_translate(&target_el).x;
                     (top, left)
                 }
             };
@@ -528,33 +535,21 @@ impl SmoothScroll {
         let direction_axis = *core.as_ref().borrow().direction_axis.clone().borrow();
 
         if *is_scrolling.borrow() || *is_dragging_scrollbar.borrow() {
-            match direction_axis {
-                'x' => {
-                    let mut _start = 0.0;
-                    let mut _end = 0.0;
-                    {
-                        _start = instance.borrow().scroll.x;
-                        _end = instance.borrow().delta.as_ref().unwrap().x;
-                    }
-                    instance.borrow_mut().delta.as_mut().unwrap().x = lerp(_start, _end, lerp_val);
-                },
-                'y' => {
-                    let mut _start = 0.0;
-                    let mut _end = 0.0;
-                    {
-                        _start = instance.borrow().scroll.y;
-                        _end = instance.borrow().delta.as_ref().unwrap().y;
-                    }
-                    instance.borrow_mut().delta.as_mut().unwrap().y = lerp(_start, _end, lerp_val);
-                },
-                _ => panic!()
+            {   
+                let new_val = lerp(
+                    instance.borrow().scroll.get(direction_axis),
+                    instance.borrow().delta.as_ref().unwrap().get(direction_axis),
+                    lerp_val
+                );
+                instance.borrow_mut().scroll.set(new_val, direction_axis);
             }
         } else {
-            let (scroll, limit, delta, scroll_y) = match direction_axis {
-                'x' => (instance.borrow().scroll.x, instance.borrow().limit.x, instance.borrow().delta.as_ref().unwrap().x, instance.borrow().scroll.y),
-                'y' => (instance.borrow().scroll.y, instance.borrow().limit.y, instance.borrow().delta.as_ref().unwrap().y, instance.borrow().scroll.y),
-                _ => panic!()
-            };
+            let (scroll, limit, delta, scroll_y) = {(
+                instance.borrow().scroll.get(direction_axis),
+                instance.borrow().limit.get(direction_axis),
+                instance.borrow().delta.as_ref().unwrap().get(direction_axis),
+                instance.borrow().scroll.get('y')
+            )};
             if scroll > limit {
                 SmoothScroll::set_scroll(instance.clone(), scroll, limit);
             } else if scroll_y < 0.0 {
@@ -577,7 +572,10 @@ impl SmoothScroll {
     ) {
         let instance = core.as_ref().borrow().instance.clone();
         let html = &core.as_ref().borrow().html;
-        window().unwrap().cancel_animation_frame(*check_scroll_raf.as_ref().clone().into_inner().as_ref().unwrap()).unwrap();
+        if let Some(handler) = check_scroll_raf.as_ref().clone().into_inner() {
+            window().unwrap().cancel_animation_frame(handler).unwrap();
+        } 
+        
 
         {
             *start_scroll_ts.borrow_mut() = None;
@@ -597,11 +595,11 @@ impl SmoothScroll {
     pub fn check_scroll(forced: Option<bool>, core: Rc<RefCell<Core>>, option: LocomotiveOption) {
         let forced = forced.unwrap_or(false);
         let ref_core = core.clone();
-        let ref_core = &ref_core.as_ref().borrow().scroll;
-        let scroll = ref_core.get_smooth();
+        let has_scroll_ticking = core.borrow().has_scroll_ticking.clone();
+        let scroll = &ref_core.as_ref().borrow().scroll;
+        let scroll = scroll.get_smooth();
         let is_scrolling = scroll.is_scrolling.clone();
         let is_dragging_scrollbar = scroll.is_dragging_scrollbar.clone();
-        let has_scroll_ticking = scroll.has_scroll_ticking.clone();
         let instance = core.as_ref().borrow().instance.clone();
         let animating_scroll = scroll.animating_scroll.clone();
         let check_scroll_raf = scroll.check_scroll_raf.clone();
@@ -610,29 +608,41 @@ impl SmoothScroll {
         let start_scroll_ts = scroll.start_scroll_ts.clone();
 
         if forced || *is_scrolling.borrow() || *is_dragging_scrollbar.borrow() {
-            {
-                if !has_scroll_ticking.as_ref().clone().into_inner() {
-                    let scroll_raf = window().unwrap().request_animation_frame(scroll.check_key_cb_1.as_ref().borrow().as_ref().unwrap().as_ref().unchecked_ref()).unwrap();
-                    *check_scroll_raf.borrow_mut() = Some(scroll_raf);
-    
-                    *has_scroll_ticking.borrow_mut() = true;
-                }
-            }
-
-            SmoothScroll::update_scroll(core.clone(),  option.lerp);
-
             let (scroll_val, _limit, delta) = match direction_axis {
                 'x' => (instance.borrow().scroll.x, instance.borrow().limit.x, instance.borrow().delta.as_ref().unwrap().x),
                 'y' => (instance.borrow().scroll.y, instance.borrow().limit.y, instance.borrow().delta.as_ref().unwrap().y),
                 _ => panic!()
             };
-            let distance = (delta - scroll_val).abs();
-            let time_since_start = Date::now() - start_scroll_ts.as_ref().clone().into_inner().as_ref().unwrap_or(&0.0);
+            
+            {
+                if !*has_scroll_ticking.borrow() {
+                    *has_scroll_ticking.borrow_mut() = true;
+                    let scroll_raf = window().unwrap().request_animation_frame(scroll.check_scroll_cb.as_ref().borrow().as_ref().unwrap().as_ref().unchecked_ref()).unwrap();
+                    *check_scroll_raf.borrow_mut() = Some(scroll_raf);
+                }
+            }
+            
 
-            if !*animating_scroll.borrow() && time_since_start > 100.0 && 
+            SmoothScroll::update_scroll(core.clone(),  option.lerp);
+
+            let distance = (delta - scroll_val).abs();
+            let time_since_start = if let Some(val) = start_scroll_ts.borrow().clone() {
+                Some(Date::now() - val)
+            } else {
+                None
+            };
+
+            if !*animating_scroll.borrow() && 
+            time_since_start.is_some() &&
+            time_since_start.unwrap() > 100.0 &&
             ((distance < 0.5 && delta != 0.0) || (distance < 0.5 && delta == 0.0)) {
                 SmoothScroll::stop_scrolling(core.clone(), start_scroll_ts.clone(), check_scroll_raf.clone(), scroll_to_raf.clone(), is_scrolling.clone(), option.scrolling_class.clone());
             }
+            /* 
+            let animating_scroll = !*animating_scroll.borrow();
+            let dbg = format!("animating scroll: {}, time_since_start: {:?}, distance: {:?}, delta: {:?}", animating_scroll, time_since_start, distance, delta);
+            web_sys::console::log_1(&dbg.into());
+            */
 
             for (_id, section) in &scroll.sections.as_ref().borrow().data {
                 let mut section = section.as_ref().borrow_mut();
@@ -648,10 +658,15 @@ impl SmoothScroll {
                             SmoothScroll::transform(section.el.clone(), Some(scroll_val * -1.0), Some(0.0), None);
                         },
                         _ => {
-                            SmoothScroll::transform(section.el.clone(), Some(0.0), Some(scroll_val * -1.0), None);
+                            //let el = section.el.clone().dyn_into::<JsValue>().unwrap();
+                            //web_sys::console::log_2(&"before".into(), &el);
+                            //web_sys::console::log_1(&scroll_val.into());
+                            SmoothScroll::transform(section.el.clone(), Some(0.0), Some(-scroll_val), None);
+                            //let el = section.el.clone().dyn_into::<JsValue>().unwrap();
+                            //web_sys::console::log_2(&"after".into(), &el);
                         }
                     }
-
+                    
                     if !section.in_view {
                         section.in_view = true;
                         let style = section.el.dyn_ref::<HtmlElement>().unwrap().style();
@@ -670,7 +685,9 @@ impl SmoothScroll {
 
                     SmoothScroll::transform(section.el.clone(), Some(0.0), Some(0.0), None);
                 }
+
             }
+            
             
             if option.get_direction {
                 SmoothScroll::add_direction(core.clone());
@@ -695,19 +712,18 @@ impl SmoothScroll {
                 };
                 let scroll_bar_translation = ( scroll_val / limit ) * scrollbar_limit;
                 if option.direction.as_str() == "horizontal" {
-                    SmoothScroll::transform(scroll.scrollbar_thumb.as_ref().unwrap().clone(), Some(scroll_bar_translation), Some(0.0), None);
+                    SmoothScroll::transform(scroll.scrollbar_thumb.borrow().as_ref().unwrap().clone(), Some(scroll_bar_translation), Some(0.0), None);
                 } else {
-                    SmoothScroll::transform(scroll.scrollbar_thumb.as_ref().unwrap().clone(), Some(0.0), Some(scroll_bar_translation), None);
+                    SmoothScroll::transform(scroll.scrollbar_thumb.borrow().as_ref().unwrap().clone(), Some(0.0), Some(scroll_bar_translation), None);
                 }
             }
 
 
             Core::check_scroll(core.clone(), &option);
-
+            
             {
                 *core.as_ref().borrow().has_scroll_ticking.borrow_mut() = false;
             }
-
         }
     }
 
@@ -733,7 +749,7 @@ impl SmoothScroll {
             *core.borrow().has_scroll_bar.borrow_mut() = Some(true);
         }
 
-        let scrollbar_bcr = scroll.scrollbar.as_ref().unwrap().get_bounding_client_rect();
+        let scrollbar_bcr = scroll.scrollbar.borrow().as_ref().unwrap().get_bounding_client_rect();
         {
             *scroll.scrollbar_bcr.borrow_mut() = Some(scrollbar_bcr.clone());
             *scroll.scrollbar_height.borrow_mut() = Some(scrollbar_bcr.height());
@@ -741,14 +757,16 @@ impl SmoothScroll {
         }
 
         if options.direction.as_str() == "horizontal" {
-            let html_scrollbar_thumb = scroll.scrollbar_thumb.as_ref().unwrap().dyn_ref::<HtmlElement>().unwrap();
+            let scrollbar_thumb = scroll.scrollbar_thumb.borrow();
+            let html_scrollbar_thumb = scrollbar_thumb.as_ref().unwrap().dyn_ref::<HtmlElement>().unwrap();
             let style = html_scrollbar_thumb.style();
             let scrollbar_width = scroll.scrollbar_width.borrow();
             let scrollbar_width = scrollbar_width.as_ref().unwrap();
             let width = format!("{:?}px", (scrollbar_width * scrollbar_width) / (limit.x + scrollbar_width));
             style.set_property("width", &width).unwrap();
         } else {
-            let html_scrollbar_thumb = scroll.scrollbar_thumb.as_ref().unwrap().dyn_ref::<HtmlElement>().unwrap();
+            let scrollbar_thumb = scroll.scrollbar_thumb.borrow();
+            let html_scrollbar_thumb = scrollbar_thumb.as_ref().unwrap().dyn_ref::<HtmlElement>().unwrap();
             let style = html_scrollbar_thumb.style();
             let scrollbar_height = scroll.scrollbar_height.borrow();
             let scrollbar_height = scrollbar_height.as_ref().unwrap();
@@ -756,7 +774,7 @@ impl SmoothScroll {
             style.set_property("width", &height).unwrap();
         }
 
-        let scrollbar_thumb_bcr = scroll.scrollbar_thumb.as_ref().unwrap().get_bounding_client_rect();
+        let scrollbar_thumb_bcr = scroll.scrollbar_thumb.borrow().as_ref().unwrap().get_bounding_client_rect();
         {
             *scroll.scrollbar_thumb_bcr.borrow_mut() = Some(scrollbar_thumb_bcr.clone());
         }
@@ -830,7 +848,11 @@ impl SmoothScroll {
         let scroll_bottom = instance.scroll.y + core.window_height;
         let scroll_middle = Position::new(instance.scroll.x + core.window_middle.x, instance.scroll.y + core.window_middle.y);
 
+        let dbg = parallax_elements.borrow();
+        let dbg = dbg.to_js();
+        web_sys::console::log_1(&dbg);
         for (_id, current) in parallax_elements.borrow().data.iter() {
+
             let mut _transform_distance = None;
             //let current = current.borrow_mut();
 
@@ -840,7 +862,7 @@ impl SmoothScroll {
 
             if *current.in_view.as_ref().unwrap() || set_all_elements.is_some() {
                 let speed = current.speed.unwrap_or(0.0);
-                match current.position.as_ref().unwrap().as_str() {
+                match current.position.as_ref().unwrap_or(&String::new()).as_str() {
                     "top" => {
                         _transform_distance = Some(scroll_val * (-speed));
                     },
@@ -903,7 +925,7 @@ impl SmoothScroll {
             }
 
             if let Some(val) = _transform_distance {
-                if current.direction.as_ref().unwrap().as_str() == "horizontal" || (options.direction.as_str() == "horizontal" && current.direction.as_ref().unwrap().as_str() != "vertical") {
+                if current.direction.as_ref().unwrap_or(&String::new()).as_str() == "horizontal" || (options.direction.as_str() == "horizontal" && current.direction.as_ref().unwrap_or(&String::new()).as_str() != "vertical") {
                     let delay = if is_forced.is_some() {
                         if let Some(val) = current.delay.as_ref() {
                             Some(val.parse::<f64>().unwrap())
@@ -932,15 +954,18 @@ impl SmoothScroll {
 
     pub fn resize(core:Rc<RefCell<Core>>, options: &LocomotiveOption) {
         {
+            web_sys::console::log_1(&"3".into());
             core.borrow_mut().window_height = window().unwrap().inner_height().unwrap().as_f64().unwrap();
         }
         {
+            web_sys::console::log_1(&"4".into());
             core.borrow_mut().window_width = window().unwrap().inner_width().unwrap().as_f64().unwrap();
         }
 
         Core::check_context(core.clone(), options);
 
         {   
+            web_sys::console::log_1(&"5".into());
             let window_height = core.borrow().window_height;
             let window_width = core.borrow().window_width;
             core.borrow_mut().window_middle = Position {
@@ -1018,7 +1043,7 @@ impl SmoothScroll {
                     scroll.sections.borrow().data.values().any(|section| section.borrow().el == candidate.clone())
                 });
                 let parent_section_offset = match parent_section {
-                    Some(el) => get_translate(el).unwrap().get(direction_axis),
+                    Some(el) => get_translate(el).get(direction_axis),
                     None => -scroll_val,
                 };
 

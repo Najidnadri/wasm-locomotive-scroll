@@ -1,10 +1,11 @@
+use convert_js::{ToJs, __internal::JsObject};
 use serde::{Serialize, Deserialize};
 use web_sys::window;
 
 use crate::utils::element_type::ElementType;
 
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, ToJs)]
 #[serde(default)]
 #[serde(rename_all = "camelCase")]
 pub struct Position {
@@ -31,7 +32,13 @@ impl Position {
         }
     }
 
-
+    pub fn set(&mut self, new: f64, direction_axis: char) {
+        match direction_axis {
+            'x' => self.x = new,
+            'y' => self.y = new,
+            _ => panic!("direction axis not supported")
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

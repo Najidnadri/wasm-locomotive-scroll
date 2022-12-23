@@ -13,7 +13,7 @@ pub fn lerp(start: f64, end: f64, amt: f64) -> f64 {
 }
 
 
-pub fn get_translate(el: &Element) -> Option<Position> {
+pub fn get_translate(el: &Element) -> Position {
     let style =  window().unwrap().get_computed_style(&el);
 
     if let Ok(Some(style)) = style {
@@ -27,18 +27,19 @@ pub fn get_translate(el: &Element) -> Option<Position> {
             let parts: Vec<&str> = transform[9..transform.len()-1].split(", ").collect();
             let x = parts[12];
             let y = parts[13];
-            return Some(Position::new(x.parse::<f64>().unwrap(), y.parse::<f64>().unwrap()))
+            return Position::new(x.parse::<f64>().unwrap(), y.parse::<f64>().unwrap())
         } else if transform.starts_with("matrix(") {
             let parts: Vec<&str> = transform[7..transform.len()-1].split(", ").collect();
             let x = parts[4];
             let y = parts[5];
-            return Some(Position::new(x.parse::<f64>().unwrap(), y.parse::<f64>().unwrap()))
+            return Position::new(x.parse::<f64>().unwrap(), y.parse::<f64>().unwrap())
         } else {
-            return None
+            return Position::new(0.0, 0.0)
         }
+    } else {
     }
 
-    None
+    Position { x: 0.0, y: 0.0 }
 }
 
 pub fn get_parents(mut elem: Element) -> Vec<Element> {
