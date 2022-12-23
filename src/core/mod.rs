@@ -263,7 +263,7 @@ impl Core {
     pub fn scroll_to(scroll: Scroll, target: ScrollToTarget, scroll_to_option: ScrollToOption, core: Rc<RefCell<Core>>, options: &LocomotiveOption) {
         //self.scroll.as_ref().unwrap().scroll_to(target_el, attr, None);
         match scroll {
-            Scroll::Native(_) => {
+            Scroll::_Native(_) => {
                 //NativeScroll::scroll_to(target, scroll_to_option, html, instance);
             },
             Scroll::Smooth(_) => {
@@ -287,19 +287,18 @@ impl Core {
             let scroll_left = core.instance.as_ref().borrow().scroll.x;
             let scroll_right = scroll_left + core.window_width;
 
-            let els = core.els.as_ref().clone().into_inner().clone().data;
-            let js_val = MappedEl::hash_to_js(&els);
-            //web_sys::console::log_1(&js_val);
-            for (id, el) in core.els.as_ref().clone().into_inner().clone().data {
+
+            for (id, mapped_el) in core.els.borrow().data.iter() {
+                let mut el = mapped_el.borrow_mut();
                 if !el.in_view.as_ref().unwrap() || has_call_event_set == Some(true) {
 
                     if options.direction.as_str() == "horizontal" {
                         if scroll_right >= el.left && scroll_left < el.right {
-                            Core::set_in_view(&el, &id, cores.clone(), options)
+                            Core::set_in_view(&mut el, &id, cores.clone(), options)
                         }
                     } else {
                         if scroll_bottom >= el.top && scroll_top < el.bottom {
-                            Core::set_in_view(&el, &id, cores.clone(), options)
+                            Core::set_in_view(&mut el, &id, cores.clone(), options)
                         }
                     }
                 }
@@ -309,25 +308,23 @@ impl Core {
                         let width = el.right - el.left;
                         let scroll_x = core.instance.as_ref().borrow().scroll.x;
                         let new_progress = (scroll_x - (el.left - core.window_width)) / (width + core.window_width);
-                        core.els.as_ref().borrow_mut().data.entry(id.clone()).and_modify(|data| {
-                            data.progress = Some(new_progress)
-                        });
+                        {
+                            el.progress = Some(new_progress);
+                        }
 
                         if scroll_right < el.left || scroll_left > el.right {
-                            Core::set_out_of_view(&el, &id, cores.clone(), options);
+                            Core::set_out_of_view(&mut el, &id, cores.clone(), options);
                         }
                     } else {
                         let height = el.bottom - el.top;
                         let scroll_y = core.instance.as_ref().borrow().scroll.y;
                         let new_progress = (scroll_y - (el.top - core.window_height)) / (height + core.window_height);
                         {
-                            core.els.as_ref().borrow_mut().data.entry(id.clone()).and_modify(|data| {
-                                data.progress = Some(new_progress)
-                            });
+                            el.progress = Some(new_progress);
                         }
 
                         if scroll_bottom < el.top || scroll_top > el.bottom {
-                            Core::set_out_of_view(&el, &id, cores.clone(), options);
+                            Core::set_out_of_view(&mut el, &id, cores.clone(), options);
                         }
                     }
                 }
@@ -349,14 +346,16 @@ impl Core {
         }
     }
 
-    pub fn set_in_view(current: &MappedEl, id: &str, core: Rc<RefCell<Core>>, option: &LocomotiveOption) {
+    pub fn set_in_view(current: &mut MappedEl, id: &str, core: Rc<RefCell<Core>>, option: &LocomotiveOption) {
         
         {
-            core.as_ref().borrow().els.as_ref().borrow_mut().data.entry(id.to_string()).and_modify(|data| data.in_view = Some(true)).or_insert(current.clone());
+            current.in_view = Some(true);
+        }
+        {
             current.el.as_ref().unwrap().class_list().add_1(&current.class).unwrap();
         }
         {
-            core.as_ref().borrow().current_elements.as_ref().borrow_mut().data.entry(id.to_string()).and_modify(|el| {
+            core.borrow().current_elements.borrow_mut().data.entry(id.to_string()).and_modify(|el| {
                 *el = current.clone();
             }).or_insert_with(|| current.clone());
         }
@@ -366,17 +365,17 @@ impl Core {
             Core::dispatch_call(current, "enter", option, core.clone());
 
             if !*current.repeat.as_ref().unwrap() {
-                core.as_ref().borrow().els.as_ref().borrow_mut().data.entry(id.to_string()).and_modify(|data| data.call = None);
+                current.call = None;
             }
         }   
     }
 
-    fn set_out_of_view(current: &MappedEl, id: &str, core: Rc<RefCell<Core>>, option: &LocomotiveOption) {
-        core.as_ref().borrow().els.as_ref().borrow_mut().data.entry(id.to_string()).and_modify(|data| data.in_view = Some(false));
+    fn set_out_of_view(current: &mut MappedEl, id: &str, core: Rc<RefCell<Core>>, option: &LocomotiveOption) {
+        current.in_view = Some(false);
         
-        core.as_ref().borrow().current_elements.as_ref().borrow_mut().data.remove(id).unwrap();
+        core.as_ref().borrow().current_elements.borrow_mut().data.remove(id).unwrap();
 
-        if current.call.is_some() && core.as_ref().borrow().has_call_event_set {
+        if current.call.is_some() && core.borrow().has_call_event_set {
             Core::dispatch_call(current, "exit", option, core.clone());
         }
 
@@ -385,7 +384,7 @@ impl Core {
         }
     }
 
-    fn dispatch_call(current: &MappedEl, way: &str, option: &LocomotiveOption, core: Rc<RefCell<Core>>) {
+    fn dispatch_call(current: &mut MappedEl, way: &str, option: &LocomotiveOption, core: Rc<RefCell<Core>>) {
         {
             *core.as_ref().borrow().call_way.as_ref().borrow_mut() = way.to_string();
             *core.as_ref().borrow().call_value.as_ref().borrow_mut() = current.call.as_ref().unwrap().split(",").map(|s| s.trim().to_string()).collect::<Vec<String>>();

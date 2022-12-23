@@ -16,7 +16,7 @@ impl Default for ElementType {
 
 
 impl ElementType {
-    pub fn query_selector(&self, selectors: &str) -> Option<Element> {
+    pub fn _query_selector(&self, selectors: &str) -> Option<Element> {
         match self {
             ElementType::Document(doc) => doc.query_selector(selectors).unwrap(),
             ElementType::Element(el) => el.query_selector(selectors).unwrap()
@@ -37,7 +37,7 @@ impl ElementType {
         }
     }
 
-    pub fn try_get_document(&self) -> Option<&Document> {
+    pub fn _try_get_document(&self) -> Option<&Document> {
         match self {
             ElementType::Document(doc) => Some(doc),
             ElementType::Element(_) => None

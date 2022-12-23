@@ -1,8 +1,8 @@
-use std::{collections::HashMap, panic, rc::Rc, cell::RefCell};
+use std::{collections::HashMap, rc::Rc, cell::RefCell};
 
 use convert_js::{__internal::JsObject, ToJs};
 use wasm_bindgen::{JsCast, JsValue};
-use web_sys::{Element, DomRect};
+use web_sys::Element;
 
 use crate::{smooth::Section, option::Position};
 
@@ -60,28 +60,6 @@ impl Default for MappedEl {
 
 
 impl MappedEl {
-    pub fn overwrite(&mut self, other: Self) {
-        self.el = other.el;
-        self.target_el = other.target_el;
-        self.id = other.id;
-        self.class = other.class;
-        self.top = other.top;
-        self.bottom = other.bottom;
-        self.middle = other.middle;
-        self.left = other.left;
-        self.right = other.right;
-        self.offset = other.offset;
-        self.progress = other.progress;
-        self.repeat = other.repeat;
-        self.in_view = other.in_view;
-        self.call = other.call;
-        self.section = other.section;
-        self.speed = other.speed;
-        self.delay = other.delay;
-        self.position = other.position;
-        self.direction = other.direction;
-        self.sticky = other.sticky;
-    }
 
     pub fn to_js_value(&self) -> JsValue {
         let jsobject = JsObject::new();
@@ -111,6 +89,7 @@ impl MappedEl {
         jsobject.set_prop(&"inView".to_string(), &self.in_view);
         jsobject.set_prop(&"call".to_string(), &self.call);
         jsobject.set_prop(&"section".to_string(), &sections);
+        jsobject.set_prop(&"speed".to_string(), &self.speed);
         jsobject.set_prop(&"delay".to_string(), &self.delay);
         jsobject.set_prop(&"position".to_string(), &self.position);
         jsobject.set_prop(&"direction".to_string(), &self.direction);
@@ -121,7 +100,7 @@ impl MappedEl {
         jsobject.into_js_value()
     }
 
-    pub fn hash_to_js(data: &HashMap<String, Rc<RefCell<MappedEl>>>) -> JsValue {
+    pub fn _hash_to_js(data: &HashMap<String, Rc<RefCell<MappedEl>>>) -> JsValue {
         let jsobject = JsObject::new();
         for (key, val) in data.iter() {
             jsobject.set_prop(&key, &val.borrow().to_js_value());
@@ -167,13 +146,4 @@ pub enum ScrollToTarget {
     String(String),
     Element(Element),
     Num(f64),
-}
-
-impl ScrollToTarget {
-    pub fn get_bounding_client_rect(&self) -> DomRect {
-        match self {
-            Self::Element(el) => el.get_bounding_client_rect(),
-            _ => panic!("scroll to target is not an element, this is a bug. please submit an issue")
-        }
-    }
 }

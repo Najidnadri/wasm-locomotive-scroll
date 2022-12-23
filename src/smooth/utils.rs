@@ -21,7 +21,6 @@ const MIDDLE: &'static str = "middle";
 const STICKY: &'static str = "sticky";
 const DIRECTION: &'static str = "direction";
 const DELAY: &'static str = "delay";
-const DATA: &'static str = "data";
 
 
 #[derive(Debug, Clone)]
@@ -119,7 +118,7 @@ impl ToJs for Sections {
 
 #[derive(Debug, Clone)]
 pub struct ParallaxElements {
-    pub data: HashMap<String, MappedEl>
+    pub data: HashMap<String, Rc<RefCell<MappedEl>>>
 }
 
 impl ParallaxElements {
@@ -133,6 +132,7 @@ impl ToJs for ParallaxElements {
         let jsobject = JsObject::new();
 
         for (key, val) in self.data.iter() {
+            let val = val.borrow();
             jsobject.set_prop(key, &val.to_js_value());
         }
         
@@ -252,7 +252,7 @@ impl SmoothScroll {
         style.set_property("msTransform", &transform).unwrap();
         style.set_property("transform", &transform).unwrap();
 
-        let js_val = el.dyn_ref::<JsValue>().unwrap();
+        //let js_val = el.dyn_ref::<JsValue>().unwrap();
         //web_sys::console::log_1(js_val);
     }
 }

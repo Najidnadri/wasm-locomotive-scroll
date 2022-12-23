@@ -1,4 +1,4 @@
-use convert_js::{ToJs, __internal::JsObject};
+use convert_js::ToJs;
 use serde::{Serialize, Deserialize};
 use web_sys::window;
 
@@ -159,7 +159,7 @@ impl LocomotiveOption {
     this.tablet = defaults.tablet;
     if (options.tablet) Object.assign(this.tablet, options.tablet);
     */
-    pub fn overwrite(&mut self, rhs: Self) {
+    pub fn _overwrite(&mut self, rhs: Self) {
         self.el = rhs.el;
         self.name = rhs.name;
         self.offset = rhs.offset;

@@ -1,20 +1,9 @@
-use js_sys::Function;
-use wasm_bindgen::{JsValue, prelude::wasm_bindgen};
 
 
-#[wasm_bindgen(module= "/js/bezier-easing/index.js")]
-extern "C" {
-
-    pub fn bezier(m_x1: f64, m_y1: f64, m_x2: f64, m_y2: f64) -> Function;
-
-}
-
-
-
-const NEWTON_ITERATIONS: u32 = 4;
-const NEWTON_MIN_SLOPE: f64 = 0.001;
-const SUBDIVISION_PRECISION: f64 = 0.0000001;
-const SUBDIVISION_MAX_ITERATIONS: u32 = 10;
+const _NEWTON_ITERATIONS: u32 = 4;
+const _NEWTON_MIN_SLOPE: f64 = 0.001;
+const _SUBDIVISION_PRECISION: f64 = 0.0000001;
+const _SUBDIVISION_MAX_ITERATIONS: u32 = 10;
 
 const K_SPLINE_TABLE_SIZE: u32 = 11;
 const K_SAMPLE_STEP_SIZE: f64 = 1.0 / (K_SPLINE_TABLE_SIZE as f64 - 1.0);
@@ -35,11 +24,11 @@ fn calc_bezier(t: f64, a_1: f64, a_2: f64) -> f64 {
     ((a(a_1, a_2) * t + b(a_1, a_2)) * t + c(a_1)) * t
 }
 
-fn get_slope(t: f64, a_1: f64, a_2: f64) -> f64 {
+fn _get_slope(t: f64, a_1: f64, a_2: f64) -> f64 {
     3.0 * a(a_1, a_2) * t * t + 2.0 * b(a_1, a_2) * t + c(a_1)
 }
 
-fn binary_subdivide(x: f64, mut a: f64, mut b: f64, m_x1: f64, m_x2: f64) -> f64 {
+fn _binary_subdivide(x: f64, mut a: f64, mut b: f64, m_x1: f64, m_x2: f64) -> f64 {
     let mut current_t;
     let mut current_x;
     let mut i = 0;
@@ -51,7 +40,7 @@ fn binary_subdivide(x: f64, mut a: f64, mut b: f64, m_x1: f64, m_x2: f64) -> f64
         } else {
             a = current_t;
         }
-        if (current_x.abs() <= SUBDIVISION_PRECISION) || (i >= SUBDIVISION_MAX_ITERATIONS) {
+        if (current_x.abs() <= _SUBDIVISION_PRECISION) || (i >= _SUBDIVISION_MAX_ITERATIONS) {
             break;
         }
         i += 1;
@@ -60,10 +49,10 @@ fn binary_subdivide(x: f64, mut a: f64, mut b: f64, m_x1: f64, m_x2: f64) -> f64
 }
 
 
-fn newton_raphson_iterate(x: f64, guess_t: f64, m_x1: f64, m_x2: f64) -> f64 {
+fn _newton_raphson_iterate(x: f64, guess_t: f64, m_x1: f64, m_x2: f64) -> f64 {
     let mut a_guess_t = guess_t;
-    for _ in 0..NEWTON_ITERATIONS {
-        let current_slope = get_slope(a_guess_t, m_x1, m_x2);
+    for _ in 0.._NEWTON_ITERATIONS {
+        let current_slope = _get_slope(a_guess_t, m_x1, m_x2);
         if current_slope == 0.0 {
             return a_guess_t;
         }
@@ -95,7 +84,7 @@ pub fn bezier2(m_x1: f64, m_y1: f64, m_x2: f64, m_y2: f64) -> Box<dyn Fn(f64) ->
             return x;
         }
 
-        let mut interval_start = 0.0;
+        let mut _interval_start = 0.0;
         let mut current_sample = 1;
         let mut last_sample = K_SPLINE_TABLE_SIZE - 1;
 
@@ -105,7 +94,7 @@ pub fn bezier2(m_x1: f64, m_y1: f64, m_x2: f64, m_y2: f64) -> Box<dyn Fn(f64) ->
             }
 
             if x > sample_values[current_sample as usize] {
-                interval_start = current_sample as f64;
+                _interval_start = current_sample as f64;
                 current_sample += 1;
             } else {
                 last_sample = current_sample;
@@ -114,21 +103,3 @@ pub fn bezier2(m_x1: f64, m_y1: f64, m_x2: f64, m_y2: f64) -> Box<dyn Fn(f64) ->
     })
 }
 
-
-#[cfg(test)]
-mod tests {
-    use crate::bezier_easing::bezier;
-
-    use super::bezier2;
-
-    #[test]
-    fn it_works() {
-        let easing = bezier2(0.25, 0.0, 0.35, 1.0);
-        let res = easing(0.5);
-        println!("{:?}", res);
-
-        let easing = bezier(0.25, 0.0, 0.35, 1.0);
-        let res = easing.call0(&0.5.into()).unwrap().as_f64().unwrap();
-        println!("{:?}", res);
-    }
-}

@@ -1,39 +1,25 @@
-use std::{rc::Rc, cell::RefCell};
-
 
 use convert_js::ToJs;
 use wasm_bindgen::JsCast;
-use web_sys::Element;
 
-use crate::{smooth::SmoothScroll, native::NativeScroll, option::LocomotiveOption, utils::instance::Instance, virtual_scroll::{VirtualScroll, VsOption}, core::Core};
+use crate::{smooth::SmoothScroll, native::NativeScroll, option::LocomotiveOption, virtual_scroll::{VirtualScroll, VsOption}};
 
 
 #[derive(Debug, Clone)]
 pub enum Scroll {
     None,
     Smooth(SmoothScroll),
-    Native(NativeScroll),
+    _Native(NativeScroll),
 }
 
 impl Scroll {
-    pub fn init(&mut self, html: Rc<RefCell<Element>>, instance: &mut Instance) {
-        match self {
-            Scroll::Smooth(scroll) => {
-                //scroll.init(html, instance);
-            },
-            Scroll::Native(_scroll) => {
-                //scroll.init(instance);
-            },
-            _ => todo!()
-        }
-    }
 
     pub fn get_option(&self) -> &LocomotiveOption {
         match self {
             Scroll::Smooth(scroll) => {
                 &scroll.options
             },
-            Scroll::Native(scroll) => {
+            Scroll::_Native(scroll) => {
                 &scroll.options
             },
             _ => todo!()
@@ -94,9 +80,9 @@ impl Scroll {
         }
     }
 
-    pub fn is_native(&self) -> bool {
+    pub fn _is_native(&self) -> bool {
         match self {
-            Scroll::Native(_) => true,
+            Scroll::_Native(_) => true,
             _ => false
         }
     }

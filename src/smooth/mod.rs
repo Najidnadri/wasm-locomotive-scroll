@@ -504,15 +504,16 @@ impl SmoothScroll {
                 direction,
                 sticky: sticky.clone(),
             };
+            let mapped_el = Rc::new(RefCell::new(mapped_el));
             {
                 core_ref.els.clone().borrow_mut().data.entry(id.clone()).or_insert(mapped_el.clone());
             }
             if el.class_list().contains(&cl) {
-                Core::set_in_view(&mapped_el, &id, core.clone(), options);
+                Core::set_in_view(&mut mapped_el.borrow_mut(), &id, core.clone(), options);
             }
             if speed != None || sticky.is_some() {
-                {
-                    scroll.parallax_elements.borrow_mut().data.entry(id).and_modify(|data| data.overwrite(mapped_el.clone())).or_insert(mapped_el);
+                {   
+                    scroll.parallax_elements.borrow_mut().data.insert(id, mapped_el);
                 }
             }
         }
@@ -851,8 +852,8 @@ impl SmoothScroll {
         let dbg = parallax_elements.borrow();
         let dbg = dbg.to_js();
         web_sys::console::log_1(&dbg);
-        for (_id, current) in parallax_elements.borrow().data.iter() {
-
+        for (_id, parallax_elem) in parallax_elements.borrow().data.iter() {
+            let current = parallax_elem.borrow();
             let mut _transform_distance = None;
             //let current = current.borrow_mut();
 
