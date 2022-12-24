@@ -20,7 +20,6 @@ use scroll::Scroll;
 //use virtual_scroll::{VirtualScroll, VsOption};
 use web_sys::{console, window};
 
-use crate::utils::element_type::ElementType;
 
 
 pub const LEFT: u32 = 37;
@@ -48,11 +47,8 @@ impl LocomotiveScroll {
     #[wasm_bindgen(constructor)]
     pub fn new(options: JsValue) -> Self {
         panic::set_hook(Box::new(console_error_panic_hook::hook));
-        //console::log_2(&"before default: ".into(), &options);
         let mut options: LocomotiveOption = serde_wasm_bindgen::from_value(options).unwrap();
-        let el = window().unwrap().document().unwrap().query_selector(&options.query).unwrap().unwrap();
-        options.el = ElementType::from_element(el);
-        //console::log_1(&format!("options after default: {:?}", options).into());
+        options.init();
 
         //warnings
         if !options.smooth && options.direction == "horizontal".to_string() {

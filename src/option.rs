@@ -41,7 +41,7 @@ impl Position {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, ToJs)]
 #[serde(default)]
 #[serde(rename_all = "camelCase")]
 pub struct Tablet {
@@ -58,7 +58,8 @@ impl Default for Tablet {
 }
 
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToJs)]
 #[serde(default)]
 #[serde(rename_all = "camelCase")]
 pub struct Smartphone {
@@ -110,6 +111,9 @@ pub struct LocomotiveOption {
 
     //SMOOTH OPTIONS
     pub inertia: Option<f64>,
+
+    //NAMES
+    pub names: Option<Names>,
 }
 
 impl Default for LocomotiveOption {
@@ -144,6 +148,7 @@ impl Default for LocomotiveOption {
             is_tablet: false,
             smartphone: Some(Smartphone::default()),
             is_mobile: false,
+            names: None,
 
             inertia: None,
         }
@@ -229,4 +234,55 @@ impl LocomotiveOption {
         is_tablet
     }
 
+    pub(crate) fn init(&mut self) {
+        let names = Names::new(&self.name, &self.scroll_bar_class);
+        self.names = Some(names);
+        let el = window().unwrap().document().unwrap().query_selector(&self.query).unwrap().unwrap();
+        self.el = ElementType::from_element(el);
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct Names {
+    pub speed: String,
+    pub data_direction: String,
+    pub thumb: String,
+    pub data_section: String,
+    pub id: String,
+    pub persistent: String,
+    pub data: String,
+    pub class: String,
+    pub repeat: String,
+    pub call: String,
+    pub position: String,
+    pub delay: String,
+    pub direction: String,
+    pub sticky: String,
+    pub offset: String,
+    pub target: String,
+    pub data_section_inview: String,
+}
+
+impl Names {
+    pub fn new(name: &str, scrollbar_class: &str) -> Self {
+        Names {
+            speed: format!("{}Speed", name),
+            data_direction: format!("data-{}-direction", name),
+            thumb: format!("{}_thumb", scrollbar_class),
+            data_section: format!("[data-{}-section]", name),
+            id: format!("{}Id", name),
+            persistent: format!("{}Persistent", name),  
+            data: format!("[data-{}]", name),
+            class: format!("{}Class", name),
+            repeat: format!("{}Repeat", name),
+            call: format!("{}Call", name),
+            position: format!("{}Position", name),
+            delay: format!("{}Delay", name),
+            direction: format!("{}Direction", name),
+            sticky: format!("{}Sticky", name),
+            offset: format!("{}Offset", name),
+            target: format!("{}Target", name),
+            data_section_inview: format!("data-{}-section-inview", name),
+        }
+    }
 }

@@ -40,7 +40,10 @@ pub struct Core {
     //Scroll
     call_way: Rc<RefCell<String>>,
     call_value: Rc<RefCell<Vec<String>>>,
-    call_obj: Rc<RefCell<Option<MappedEl>>>
+    call_obj: Rc<RefCell<Option<MappedEl>>>,
+
+    //Other callbacks and functions
+    pub check_resize_cb_2: Rc<RefCell<Option<Closure<dyn FnMut()>>>>,
 }
 
 
@@ -122,18 +125,20 @@ impl Core {
             call_way: Rc::new(RefCell::new(String::new())),
             call_value: Rc::new(RefCell::new(vec![])),
             call_obj: Rc::new(RefCell::new(None)),
+
+            check_resize_cb_2: Rc::new(RefCell::new(None)),
         };
 
         let core = Rc::new(RefCell::new(core));
 
         let scroll = Core::create_scroll(options.clone(),  core.clone());
         {
-            web_sys::console::log_1(&"6".into());
             core.borrow_mut().scroll = scroll;
         }
         
 
         Core::check_scroll_callback(core.clone());
+        Core::check_resize_cb_2(core.clone());
         Core::check_resize_callback(core.clone());
         Core::set_scroll_to_callback(core.clone(), &options);
       
@@ -166,7 +171,6 @@ impl Core {
     pub fn init_events(core: Rc<RefCell<Core>>, options: &LocomotiveOption) {
 
         {
-            web_sys::console::log_1(&"7".into());
             core.borrow_mut().scroll_to_els = options.el.query_selector_all(&format!("[data-{}-to", options.name));
         }
 
@@ -203,47 +207,44 @@ impl Core {
         }
     }
 
-    pub(crate) fn check_context(core: Rc<RefCell<Core>>, options: &LocomotiveOption) {
+    pub(crate) fn check_context(core: &mut Core) {
+        let is_smooth = core.scroll.is_smooth();
+        let options = core.scroll.get_mut_option();
         if !options.reload_on_context_change {
             return;
         }
-        let mut _is_smooth = false;
-        {
-            _is_smooth = core.borrow().scroll.is_smooth();
-        }
+
 
         let is_mobile = options.check_mobile_bool();
         {   
-            web_sys::console::log_1(&"1".into());
-            match _is_smooth {
-                true => core.borrow_mut().scroll.get_mut_smooth().options.is_mobile = is_mobile,
+            match is_smooth {
+                true => options.is_mobile = is_mobile,
                 false => todo!()
             }
         }
         let is_tablet = options.check_tablet_bool();
         {
-            web_sys::console::log_1(&"2".into());
-            match _is_smooth {
-                true => core.borrow_mut().scroll.get_mut_smooth().options.is_tablet = is_tablet,
+            match is_smooth {
+                true => options.is_tablet = is_tablet,
                 false => todo!()
             }
         }
-
-        let old_context = core.borrow().context.as_ref().clone().into_inner();
+         
+        let old_context = core.context.as_ref().clone().into_inner();
         match (options.is_mobile, options.is_tablet) {
-            (true, true) => *core.borrow().context.borrow_mut() = "tablet".to_string(),
-            (true, false) => *core.borrow().context.borrow_mut() = "smartphone".to_string(),
-            _ => *core.borrow().context.borrow_mut() = "desktop".to_string(),
+            (true, true) => *core.context.borrow_mut() = "tablet".to_string(),
+            (true, false) => *core.context.borrow_mut() = "smartphone".to_string(),
+            _ => *core.context.borrow_mut() = "desktop".to_string(),
         }
 
-        if old_context.as_str() != core.borrow().context.borrow().as_str() {
+        if old_context.as_str() != core.context.borrow().as_str() {
             let old_smooth = match old_context.as_str() {
                 "desktop" => options.smooth,
                 "tablet" => options.tablet.as_ref().unwrap().smooth,
                 "smartphone" => options.tablet.as_ref().unwrap().smooth,
                 _ => panic!("device not supported") 
             };
-            let new_smooth = match core.borrow().context.borrow().as_str() {
+            let new_smooth = match core.context.borrow().as_str() {
                 "desktop" => options.smooth,
                 "tablet" => options.tablet.as_ref().unwrap().smooth,
                 "smartphone" => options.smartphone.as_ref().unwrap().smooth,
@@ -254,6 +255,7 @@ impl Core {
                 window().unwrap().location().reload().unwrap();
             }
         }
+        
     }
 
 }
@@ -337,11 +339,10 @@ impl Core {
     }
 
     fn resize(core: Rc<RefCell<Core>>) {
-        let is_smooth = core.borrow().scroll.is_smooth();
-        let scroll = &core.borrow().scroll;
-        let options = scroll.get_option();
+        let mut core_mut = core.borrow_mut();
+        let is_smooth = core_mut.scroll.is_smooth();
         match is_smooth {
-            true => SmoothScroll::resize(core.clone(), options),
+            true => SmoothScroll::resize(&mut core_mut),
             false => todo!()
         }
     }

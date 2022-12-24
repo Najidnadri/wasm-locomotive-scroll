@@ -26,6 +26,14 @@ impl Scroll {
         }
     }
 
+    pub fn get_mut_option(&mut self) -> &mut LocomotiveOption {
+        match self {
+            Scroll::Smooth(scroll) => &mut scroll.options,
+            Scroll::_Native(_) => todo!(),
+            _ => panic!()
+        }
+    }
+
     pub fn set_virtual_scroll(&mut self, option: VsOption) {
         match self {
             Scroll::Smooth(scroll) => {

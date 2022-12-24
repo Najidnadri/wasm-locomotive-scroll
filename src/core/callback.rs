@@ -36,29 +36,38 @@ impl Core {
     pub fn check_resize_callback(core: Rc<RefCell<Core>>) {
         let callback: Rc<RefCell<Option<Closure<dyn FnMut() >>>> = Rc::new(RefCell::new(None));
         let core2 = core.clone();
+        let cb = core.borrow().check_resize_cb_2.clone();
 
         
         *callback.borrow_mut() = Some(Closure::new(move || {
             let core = core.clone();
             let mut _resize_tick = true;
             {
-                _resize_tick = *core.as_ref().borrow().resize_tick.as_ref().borrow();
+                _resize_tick = *core.borrow().resize_tick.as_ref().borrow();
             }
             if !_resize_tick {
                 {
-                    *core.as_ref().borrow().resize_tick.as_ref().borrow_mut() = true;
+                    *core.borrow().resize_tick.as_ref().borrow_mut() = true;
                 }
-                let callback = Closure::wrap(Box::new(move || {
-                    // todo
-                    Core::resize(core.clone());
-                    *core.as_ref().borrow().resize_tick.as_ref().borrow_mut() = false;
-                }) as Box<dyn Fn()>);
-                window().unwrap().request_animation_frame(callback.as_ref().unchecked_ref()).unwrap();
-                callback.forget();
+                window().unwrap().request_animation_frame(cb.borrow().as_ref().unwrap().as_ref().unchecked_ref()).unwrap();
             }   
         }));
         {
             core2.as_ref().borrow_mut().check_resize = callback;
+        }
+    }
+
+    pub fn check_resize_cb_2(core: Rc<RefCell<Core>>) {
+        let callback: Rc<RefCell<Option<Closure<dyn FnMut() >>>> = Rc::new(RefCell::new(None));
+        let core2 = core.clone();
+
+        *callback.borrow_mut() = Some(Closure::new(move || {
+            Core::resize(core.clone());
+            *core.borrow().resize_tick.as_ref().borrow_mut() = false;
+        }));
+
+        {
+            core2.as_ref().borrow_mut().check_resize_cb_2 = callback;
         }
     }
 

@@ -21,6 +21,10 @@ const MIDDLE: &'static str = "middle";
 const STICKY: &'static str = "sticky";
 const DIRECTION: &'static str = "direction";
 const DELAY: &'static str = "delay";
+const PERSISTENT: &'static str = "persistent";
+const OFFSET: &'static str = "offset";
+const LIMIT: &'static str = "limit";
+const ID: &'static str = "id";
 
 
 #[derive(Debug, Clone)]
@@ -37,12 +41,12 @@ impl ToJs for Section {
     fn to_js(&self) -> JsValue {
         let jsobject = JsObject::new();
 
-        jsobject.set_prop(&"persistent".to_string(), &self.persistent);
-        jsobject.set_prop(&"offset".to_string(), &self.offset);
-        jsobject.set_prop(&"limit".to_string(), &self.limit);
-        jsobject.set_prop(&"inView".to_string(), &self.in_view);
-        jsobject.set_prop(&"el".to_string(), &self.el.clone().dyn_into::<JsValue>().unwrap());
-        jsobject.set_prop(&"id".to_string(), &self.id);
+        jsobject.set_prop(&PERSISTENT, &self.persistent);
+        jsobject.set_prop(&OFFSET, &self.offset);
+        jsobject.set_prop(&LIMIT, &self.limit);
+        jsobject.set_prop(&IN_VIEW, &self.in_view);
+        jsobject.set_prop(&EL, &self.el.clone().dyn_into::<JsValue>().unwrap());
+        jsobject.set_prop(&ID, &self.id);
 
         jsobject.into_js_value()
     }

@@ -3,7 +3,6 @@ mod utils;
 
 use std::{rc::Rc, cell::RefCell};
 
-use convert_js::ToJs;
 use js_sys::{Date, Function};
 use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
 use web_sys::{Element, KeyboardEvent, window, WheelEvent, HtmlElement, Node, MouseEvent, DomRect};
@@ -130,7 +129,7 @@ impl SmoothScroll {
     pub fn init(core: Rc<RefCell<Core>>, options: &LocomotiveOption) {
         {
             let _ = core.as_ref().borrow().html.as_ref().borrow().class_list().add_1(&options.smooth_class);
-            let _ = core.as_ref().borrow().html.as_ref().borrow().set_attribute(&format!("data-{}-direction", options.name), &options.direction);
+            let _ = core.as_ref().borrow().html.as_ref().borrow().set_attribute(&options.names.as_ref().unwrap().data_direction, &options.direction);
         }
         {  
             {
@@ -155,7 +154,6 @@ impl SmoothScroll {
                 use_keyboard: false,
                 passive: true,
             };
-            web_sys::console::log_1(&"8".into());
             core.borrow_mut().scroll.set_virtual_scroll(vs_option);
         }
         {
@@ -215,7 +213,7 @@ impl SmoothScroll {
         let scrollbar = doc.create_element("span").unwrap();
         let scrollbar_thumb = doc.create_element("span").unwrap();
         scrollbar.class_list().add_1(&options.scroll_bar_class).unwrap();
-        scrollbar_thumb.class_list().add_1(&format!("{}_thumb", &options.scroll_bar_class)).unwrap();
+        scrollbar_thumb.class_list().add_1(&options.names.as_ref().unwrap().thumb).unwrap();
 
         scrollbar.append_with_node_1(scrollbar_thumb.dyn_ref::<Node>().unwrap()).unwrap();
 
@@ -286,14 +284,13 @@ impl SmoothScroll {
 
     ///this function will take a `mut core`, so be sure that the parents is not borrowing `core`
     fn add_sections(core: Rc<RefCell<Core>>, options: &LocomotiveOption) {
-        web_sys::console::log_1(&"9".into());
         let mut core_ref = core.borrow_mut();
         let scroll = core_ref.scroll.get_mut_smooth();
         {
             scroll.sections.borrow_mut().clear();
         }
 
-        let sections = options.el.query_selector_all(&format!("[data-{}-section]", options.name)).unwrap();
+        let sections = options.el.query_selector_all(&options.names.as_ref().unwrap().data_section).unwrap();
         let sections = if sections.length() == 0 {
             vec![options.el.get_element().clone()]
         } else {
@@ -307,7 +304,7 @@ impl SmoothScroll {
     
         for (index, section) in sections.into_iter().enumerate() {
             let html_element = section.dyn_ref::<HtmlElement>().unwrap();
-            let id = if let Some(id) = html_element.dataset().get(format!("{}Id", options.name).as_str()) {
+            let id = if let Some(id) = html_element.dataset().get(&options.names.as_ref().unwrap().id) {
                 id.to_string()
             } else {
                 format!("section{}", index)
@@ -321,7 +318,7 @@ impl SmoothScroll {
                 x: offset.x + section_bcr.width() + window().unwrap().inner_width().unwrap().as_f64().unwrap() * 2.0,
                 y: offset.y + section_bcr.height() + window().unwrap().inner_height().unwrap().as_f64().unwrap() * 2.0,
             };
-            let persistent = if let Some(persistent) = html_element.dataset().get(format!("{}Persistent", options.name).as_str()) {
+            let persistent = if let Some(persistent) = html_element.dataset().get(&options.names.as_ref().unwrap().persistent) {
                 persistent == "string"
             } else {
                 false
@@ -353,7 +350,7 @@ impl SmoothScroll {
             scroll.parallax_elements.borrow_mut().data.clear();
         }
 
-        let els = options.el.query_selector_all(&format!("[data-{}]", options.name)).unwrap();
+        let els = options.el.query_selector_all(&options.names.as_ref().unwrap().data).unwrap();
 
         for index in 0 .. els.length() {
             let node = els.get(index).unwrap();
@@ -369,13 +366,13 @@ impl SmoothScroll {
                 .values()
                 .find(|section| parents.contains(&section.borrow().el));
 
-            let cl = dataset.get(&format!("{}Class", options.name)).unwrap_or(options.class.clone());
-            let id = if let Some(el_id) = dataset.get(&format!("{}Id", options.name)) {
+            let cl = dataset.get(&options.names.as_ref().unwrap().class).unwrap_or(options.class.clone());
+            let id = if let Some(el_id) = dataset.get(&options.names.as_ref().unwrap().id) {
                 el_id
             } else {
                 format!("el{}", index.to_string())
             };
-            let repeat = match dataset.get(&format!("{}Repeat", options.name)) {
+            let repeat = match dataset.get(&options.names.as_ref().unwrap().repeat) {
                 Some(val) => {
                     match val.as_str().trim() == "false" {
                         true => false,
@@ -384,22 +381,22 @@ impl SmoothScroll {
                 },
                 None => options.repeat
             };
-            let call = dataset.get(&format!("{}Call", options.name));
-            let position = dataset.get(&format!("{}Position", options.name));
-            let delay = dataset.get(&format!("{}Delay", options.name));
-            let direction = dataset.get(&format!("{}Direction", options.name));
-            let sticky = dataset.get(&format!("{}Sticky", options.name));
-            let speed = if let Some(val) = dataset.get(&format!("{}Speed", options.name)) {
+            let call = dataset.get(&options.names.as_ref().unwrap().call);
+            let position = dataset.get(&options.names.as_ref().unwrap().position);
+            let delay = dataset.get(&options.names.as_ref().unwrap().delay);
+            let direction = dataset.get(&options.names.as_ref().unwrap().direction);
+            let sticky = dataset.get(&options.names.as_ref().unwrap().sticky);
+            let speed = if let Some(val) = dataset.get(&options.names.as_ref().unwrap().speed) {
                 Some(val.parse::<f64>().unwrap() / 10.0)
             } else {
                 None
             };
-            let offset = if let Some(val) = dataset.get(&format!("{}Offset", options.name)) {
+            let offset = if let Some(val) = dataset.get(&options.names.as_ref().unwrap().offset) {
                 val.split(",").map(|s| s.trim().to_string()).collect::<Vec<String>>()
             } else {
                 vec![options.offset[0].to_string(), options.offset[1].to_string()]
             };
-            let target = dataset.get(&format!("{}Target", options.name));
+            let target = dataset.get(&options.names.as_ref().unwrap().target);
             let target_el = match target {
                 Some(val) => window().unwrap().document().unwrap().query_selector(&val).unwrap().unwrap(),
                 None => el.clone()
@@ -659,12 +656,7 @@ impl SmoothScroll {
                             SmoothScroll::transform(section.el.clone(), Some(scroll_val * -1.0), Some(0.0), None);
                         },
                         _ => {
-                            //let el = section.el.clone().dyn_into::<JsValue>().unwrap();
-                            //web_sys::console::log_2(&"before".into(), &el);
-                            //web_sys::console::log_1(&scroll_val.into());
                             SmoothScroll::transform(section.el.clone(), Some(0.0), Some(-scroll_val), None);
-                            //let el = section.el.clone().dyn_into::<JsValue>().unwrap();
-                            //web_sys::console::log_2(&"after".into(), &el);
                         }
                     }
                     
@@ -673,7 +665,7 @@ impl SmoothScroll {
                         let style = section.el.dyn_ref::<HtmlElement>().unwrap().style();
                         style.set_property("opacity", "1").unwrap();
                         style.set_property("pointerEvents", "all").unwrap();
-                        section.el.set_attribute(&format!("data-{}-section-inview", &option.name), "").unwrap()
+                        section.el.set_attribute(&option.names.as_ref().unwrap().data_section_inview, "").unwrap()
                     }
                 } else {
                     if section.in_view || forced {
@@ -681,7 +673,7 @@ impl SmoothScroll {
                         let style = section.el.dyn_ref::<HtmlElement>().unwrap().style();
                         style.set_property("opacity", "0").unwrap();
                         style.set_property("pointerEvents", "none").unwrap();
-                        section.el.remove_attribute(&format!("data-{}-section-inview", &option.name)).unwrap()
+                        section.el.remove_attribute(&option.names.as_ref().unwrap().data_section_inview).unwrap()
                     }
 
                     SmoothScroll::transform(section.el.clone(), Some(0.0), Some(0.0), None);
@@ -849,9 +841,6 @@ impl SmoothScroll {
         let scroll_bottom = instance.scroll.y + core.window_height;
         let scroll_middle = Position::new(instance.scroll.x + core.window_middle.x, instance.scroll.y + core.window_middle.y);
 
-        let dbg = parallax_elements.borrow();
-        let dbg = dbg.to_js();
-        web_sys::console::log_1(&dbg);
         for (_id, parallax_elem) in parallax_elements.borrow().data.iter() {
             let current = parallax_elem.borrow();
             let mut _transform_distance = None;
@@ -953,23 +942,20 @@ impl SmoothScroll {
         }
     }
 
-    pub fn resize(core:Rc<RefCell<Core>>, options: &LocomotiveOption) {
+    pub fn resize(core: &mut Core) {
         {
-            web_sys::console::log_1(&"3".into());
-            core.borrow_mut().window_height = window().unwrap().inner_height().unwrap().as_f64().unwrap();
+            core.window_height = window().unwrap().inner_height().unwrap().as_f64().unwrap();
         }
         {
-            web_sys::console::log_1(&"4".into());
-            core.borrow_mut().window_width = window().unwrap().inner_width().unwrap().as_f64().unwrap();
+            core.window_width = window().unwrap().inner_width().unwrap().as_f64().unwrap();
         }
 
-        Core::check_context(core.clone(), options);
+        Core::check_context(core);
 
         {   
-            web_sys::console::log_1(&"5".into());
-            let window_height = core.borrow().window_height;
-            let window_width = core.borrow().window_width;
-            core.borrow_mut().window_middle = Position {
+            let window_height = core.window_height;
+            let window_width = core.window_width;
+            core.window_middle = Position {
                 x: window_width / 2.0,
                 y: window_height / 2.0,
             }

@@ -1,3 +1,4 @@
+use convert_js::ToJs;
 use wasm_bindgen::{JsValue, JsCast};
 use web_sys::{window, Document, Element, NodeList, Event, HtmlCollection};
 
@@ -10,6 +11,19 @@ pub enum ElementType {
 impl Default for ElementType {
     fn default() -> Self {
         ElementType::Document(window().unwrap().document().unwrap())
+    }
+}
+
+impl ToJs for ElementType {
+    fn to_js(&self) -> JsValue {
+        match self {
+            Self::Document(doc) => {
+                doc.clone().dyn_into::<JsValue>().unwrap()
+            },
+            Self::Element(el) => {
+                el.clone().dyn_into::<JsValue>().unwrap()
+            }
+        }
     }
 }
 
